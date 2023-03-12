@@ -11,7 +11,11 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>ASUPSDlg</string>
+   <string>AS UPS 1.0</string>
+  </property>
+  <property name="windowIcon">
+   <iconset resource="resources.qrc">
+    <normaloff>:/res/ups.png</normaloff>:/res/ups.png</iconset>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>
@@ -179,19 +183,22 @@
       </widget>
      </item>
      <item>
-      <widget class="QFrame" name="frGraph">
-       <property name="frameShape">
-        <enum>QFrame::StyledPanel</enum>
-       </property>
-       <property name="frameShadow">
-        <enum>QFrame::Raised</enum>
-       </property>
-      </widget>
+      <widget class="QCustomPlot" name="frGraph" native="true"/>
      </item>
     </layout>
    </item>
   </layout>
  </widget>
- <resources/>
+ <customwidgets>
+  <customwidget>
+   <class>QCustomPlot</class>
+   <extends>QWidget</extends>
+   <header>qcustomplot.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources>
+  <include location="resources.qrc"/>
+ </resources>
  <connections/>
 </ui>

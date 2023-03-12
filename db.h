@@ -23,16 +23,20 @@
  */
 #pragma once
 
+#include <QDate>
+#include <QDateTime>
 #include <QMutex>
 #include <QObject>
 #include <QSqlDatabase>
+#include <QString>
 
 class LogDB
 {
 public:
     LogDB();
     ~LogDB();
-    void addToDB(const QString& msg);
+    void addToDB(const QStringList& items);
+    QVector<QPair<QDateTime, QString>> getData();
 
     bool isConnected();
 
@@ -40,5 +44,4 @@ private:
     QSqlDatabase m_db;
 
     bool initDB();
-    void add(const QString& prog, const QString msg);
 };

@@ -53,11 +53,31 @@ ASUPSDlg::ASUPSDlg(QWidget* parent)
     ui->cbAutoUpdateDB->blockSignals(true);
     ui->cbAutoUpdateDB->setChecked(s.value(QStringLiteral("updatedb"), false).toBool());
     ui->cbAutoUpdateDB->blockSignals(false);
+    ui->frGraph->setLocale(QLocale(QLocale::Hungarian, QLocale::Hungary));
+    ui->frGraph->legend->setVisible(true);
+    ui->frGraph->addGraph(nullptr, ui->frGraph->yAxis2);
+    ui->frGraph->graph(0)->setPen(QPen(Qt::red));
+    ui->frGraph->graph(0)->setName(QStringLiteral("Charge [%]"));
+    ui->frGraph->addGraph();
+    ui->frGraph->graph(1)->setPen(QPen(Qt::green));
+    ui->frGraph->graph(1)->setName(QStringLiteral("Input voltage [V]"));
+    ui->frGraph->addGraph();
+    ui->frGraph->graph(2)->setName(QStringLiteral("Output voltage [V]"));
+    ui->frGraph->xAxis->setLabel(QStringLiteral("t"));
+    ui->frGraph->yAxis->setLabel(QStringLiteral("Ubatt"));
+    ui->frGraph->yAxis2->setLabel(QStringLiteral("%batt"));
+    ui->frGraph->yAxis2->setVisible(true);
+    ui->frGraph->yAxis2->setRange(0, 110);
+    ui->frGraph->yAxis->setRange(180, 250);
+    QSharedPointer<QCPAxisTickerDateTime> dateTicker(new QCPAxisTickerDateTime);
+    dateTicker->setDateTimeFormat(QStringLiteral("hh:mm:ss.zzz"));
+    dateTicker->setTickOrigin(QDateTime::fromString(QStringLiteral("1. Jan 1970, 00:00 UTC")));
+    ui->frGraph->xAxis->setTicker(dateTicker);
+    ui->frGraph->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectItems);
+    ui->frGraph->setSelectionRectMode(QCP::srmNone);
     if (ui->cbAutoUpdateDB->isChecked())
-    {
-        updatedb();
         m_updateDBTimer.start(10000);
-    }
+    updatedb();
     restoreGeometry(s.value(QStringLiteral("geometry")).toByteArray());
 }
 
@@ -120,11 +140,40 @@ void ASUPSDlg::update()
 
 void ASUPSDlg::updatedb()
 {
+    QVector<QPair<QDateTime, QString>> data { db.getData() };
+    if (data.size())
+    {
+        QVector<double> dates;
+        QVector<double> charge;
+        QVector<double> inputVoltage;
+        QVector<double> outputVoltage;
+        for (const QPair<QDateTime, QString>& d : data)
+        {
+            dates.append(QCPAxisTickerDateTime::dateTimeToKey(d.first));
+            QStringList items { d.second.split(':') };
+            charge.append(items.at(0).toInt());
+            inputVoltage.append(items.at(1).toDouble());
+            outputVoltage.append(items.at(2).toDouble());
+        }
+
+        ui->frGraph->graph(0)->data().clear();
+        ui->frGraph->graph(0)->addData(dates, charge);
+        ui->frGraph->graph(1)->data().clear();
+        ui->frGraph->graph(1)->addData(dates, inputVoltage);
+        ui->frGraph->graph(2)->data().clear();
+        ui->frGraph->graph(2)->addData(dates, outputVoltage);
+        ui->frGraph->xAxis->setRange(dates.first(), dates.last());
+        ui->frGraph->replot();
+    }
 }
 
 void ASUPSDlg::on_pbUpdateDB_clicked()
 {
     updatedb();
+    QStringList items;
+    for (int i = 0; i < ui->twData->rowCount(); ++i)
+        items << QString("%1:%2").arg(ui->twData->item(i, 0)->text(), ui->twData->item(i, 1)->text());
+    db.addToDB(items);
 }
 
 void ASUPSDlg::on_cbAutoUpdateDB_stateChanged(int arg1)

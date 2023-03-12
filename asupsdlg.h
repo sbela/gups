@@ -27,6 +27,7 @@
 #include <QTimer>
 
 #include "aslogger.h"
+#include "db.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui
@@ -62,4 +63,6 @@ private:
     QTimer m_updateDBTimer;
     void update();
     void updatedb();
+
+    LogDB db;
 };

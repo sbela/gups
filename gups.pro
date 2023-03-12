@@ -1,4 +1,4 @@
-QT       += core gui network sql opengl
+QT       += core gui network sql opengl printsupport
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -14,13 +14,15 @@ SOURCES += \
     aslogger.cpp \
     db.cpp \
     main.cpp \
-    asupsdlg.cpp
+    asupsdlg.cpp \
+    qcustomplot.cpp
 
 HEADERS += \
     asfx.h \
     aslogger.h \
     asupsdlg.h \
-    db.h
+    db.h \
+    qcustomplot.h
 
 FORMS += \
     asupsdlg.ui
@@ -33,3 +35,6 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 DISTFILES += \
     .clang-format \
     .gitignore
+
+RESOURCES += \
+    resources.qrc
