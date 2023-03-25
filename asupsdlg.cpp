@@ -53,15 +53,38 @@ ASUPSDlg::ASUPSDlg(QWidget* parent)
     ui->cbAutoUpdateDB->blockSignals(true);
     ui->cbAutoUpdateDB->setChecked(s.value(QStringLiteral("updatedb"), false).toBool());
     ui->cbAutoUpdateDB->blockSignals(false);
+    QPalette pal { palette() };
+    ui->frGraph->setBackground(pal.window().color().lighter(200));
+    QColor itemColor {pal.windowText().color()};
+
+    const auto setColor = [itemColor](QCPAxis *axis) {
+        axis->setLabelColor(itemColor);
+        axis->setTickLabelColor(itemColor);
+        axis->setTickPen(itemColor);
+        axis->setSubTickPen(itemColor);
+        axis->setBasePen(itemColor);
+    };
+
+    setColor(ui->frGraph->xAxis);
+    setColor(ui->frGraph->yAxis);
+    setColor(ui->frGraph->yAxis2);
+
+    ui->frGraph->legend->setBrush(pal.window().color().lighter());
+    ui->frGraph->legend->setBorderPen(itemColor);
+    ui->frGraph->legend->setTextColor(itemColor);
+
     ui->frGraph->setLocale(QLocale(QLocale::Hungarian, QLocale::Hungary));
     ui->frGraph->legend->setVisible(true);
     ui->frGraph->addGraph(nullptr, ui->frGraph->yAxis2);
     ui->frGraph->graph(0)->setPen(QPen(Qt::red));
+    ui->frGraph->graph(0)->setBrush(QBrush(QColor(255, 0, 0, 20)));
     ui->frGraph->graph(0)->setName(QStringLiteral("Charge [%]"));
     ui->frGraph->addGraph();
-    ui->frGraph->graph(1)->setPen(QPen(Qt::green));
+    ui->frGraph->graph(1)->setPen(QPen(Qt::white));
+    ui->frGraph->graph(1)->setBrush(QBrush(QColor(255, 255, 0, 20)));
     ui->frGraph->graph(1)->setName(QStringLiteral("Input voltage [V]"));
     ui->frGraph->addGraph();
+    ui->frGraph->graph(2)->setPen(QPen(Qt::yellow));
     ui->frGraph->graph(2)->setName(QStringLiteral("Output voltage [V]"));
     ui->frGraph->xAxis->setLabel(QStringLiteral("t"));
     ui->frGraph->yAxis->setLabel(QStringLiteral("Ubatt"));
@@ -69,6 +92,7 @@ ASUPSDlg::ASUPSDlg(QWidget* parent)
     ui->frGraph->yAxis2->setVisible(true);
     ui->frGraph->yAxis2->setRange(0, 110);
     ui->frGraph->yAxis->setRange(180, 250);
+
     QSharedPointer<QCPAxisTickerDateTime> dateTicker(new QCPAxisTickerDateTime);
     dateTicker->setDateTimeFormat(QStringLiteral("hh:mm:ss.zzz"));
     dateTicker->setTickOrigin(QDateTime::fromString(QStringLiteral("1. Jan 1970, 00:00 UTC")));

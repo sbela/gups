@@ -31,6 +31,7 @@ ASLogger* Globals::pLog { nullptr };
 
 int main(int argc, char* argv[])
 {
+    PRINT("STARTUP");
     QApplication a(argc, argv);
     ASUPSDlg w;
     w.show();
