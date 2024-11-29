@@ -55,9 +55,9 @@ ASUPSDlg::ASUPSDlg(QWidget* parent)
     ui->cbAutoUpdateDB->blockSignals(false);
     QPalette pal { palette() };
     ui->frGraph->setBackground(pal.window().color().lighter(200));
-    QColor itemColor {pal.windowText().color()};
+    QColor itemColor { pal.windowText().color() };
 
-    const auto setColor = [itemColor](QCPAxis *axis) {
+    const auto setColor = [itemColor](QCPAxis* axis) {
         axis->setLabelColor(itemColor);
         axis->setTickLabelColor(itemColor);
         axis->setTickPen(itemColor);
@@ -94,10 +94,10 @@ ASUPSDlg::ASUPSDlg(QWidget* parent)
     ui->frGraph->yAxis->setRange(180, 250);
 
     QSharedPointer<QCPAxisTickerDateTime> dateTicker(new QCPAxisTickerDateTime);
-    dateTicker->setDateTimeFormat(QStringLiteral("hh:mm:ss.zzz"));
+    dateTicker->setDateTimeFormat(QStringLiteral("yy.MM.dd hh:mm:ss.zzz"));
     dateTicker->setTickOrigin(QDateTime::fromString(QStringLiteral("1. Jan 1970, 00:00 UTC")));
     ui->frGraph->xAxis->setTicker(dateTicker);
-    ui->frGraph->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectItems);
+    ui->frGraph->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom);
     ui->frGraph->setSelectionRectMode(QCP::srmNone);
     if (ui->cbAutoUpdateDB->isChecked())
         m_updateDBTimer.start(10000);
@@ -155,7 +155,7 @@ void ASUPSDlg::update()
     for (int i = 0; i < ret.size(); ++i)
     {
         auto items = ret.at(i).split(':');
-        if (items.size())
+        if (not items.isEmpty())
             ui->twData->setItem(i, 0, new QTableWidgetItem(items[0].replace('.', ' ')));
         if (items.size() > 1)
             ui->twData->setItem(i, 1, new QTableWidgetItem(items.at(1)));
@@ -164,37 +164,41 @@ void ASUPSDlg::update()
 
 void ASUPSDlg::updatedb()
 {
-    QVector<QPair<QDateTime, QString>> data { db.getData() };
-    if (data.size())
+    QVector<QPair<QString, QString>> data { db.getData() };
+    if (data.isEmpty())
+        return;
+    QVector<double> dates;
+    dates.reserve(data.size());
+    QVector<double> charge;
+    charge.reserve(data.size());
+    QVector<double> inputVoltage;
+    inputVoltage.reserve(data.size());
+    QVector<double> outputVoltage;
+    outputVoltage.reserve(data.size());
+    for (const QPair<QString, QString>& d : data)
     {
-        QVector<double> dates;
-        QVector<double> charge;
-        QVector<double> inputVoltage;
-        QVector<double> outputVoltage;
-        for (const QPair<QDateTime, QString>& d : data)
-        {
-            dates.append(QCPAxisTickerDateTime::dateTimeToKey(d.first));
-            QStringList items { d.second.split(':') };
-            charge.append(items.at(0).toInt());
-            inputVoltage.append(items.at(1).toDouble());
-            outputVoltage.append(items.at(2).toDouble());
-        }
-
-        ui->frGraph->graph(0)->data().clear();
-        ui->frGraph->graph(0)->addData(dates, charge);
-        ui->frGraph->graph(1)->data().clear();
-        ui->frGraph->graph(1)->addData(dates, inputVoltage);
-        ui->frGraph->graph(2)->data().clear();
-        ui->frGraph->graph(2)->addData(dates, outputVoltage);
-        ui->frGraph->xAxis->setRange(dates.first(), dates.last());
-        ui->frGraph->replot();
+        dates.append(QCPAxisTickerDateTime::dateTimeToKey(QDateTime::fromString(d.first, "yyyyMMddhhmmsszzz")));
+        QStringList items { d.second.split(':') };
+        charge.append(items.at(0).toInt());
+        inputVoltage.append(items.at(1).toDouble());
+        outputVoltage.append(items.at(2).toDouble());
     }
+
+    ui->frGraph->graph(0)->data().clear();
+    ui->frGraph->graph(0)->addData(dates, charge);
+    ui->frGraph->graph(1)->data().clear();
+    ui->frGraph->graph(1)->addData(dates, inputVoltage);
+    ui->frGraph->graph(2)->data().clear();
+    ui->frGraph->graph(2)->addData(dates, outputVoltage);
+    ui->frGraph->xAxis->setRange(dates.first(), dates.last());
+    ui->frGraph->replot();
 }
 
 void ASUPSDlg::on_pbUpdateDB_clicked()
 {
     updatedb();
     QStringList items;
+    items.reserve(ui->twData->rowCount());
     for (int i = 0; i < ui->twData->rowCount(); ++i)
         items << QString("%1:%2").arg(ui->twData->item(i, 0)->text(), ui->twData->item(i, 1)->text());
     db.addToDB(items);
