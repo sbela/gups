@@ -56,6 +56,8 @@ private Q_SLOTS:
 
     void on_cbAutoUpdateDB_stateChanged(int arg1);
 
+    void on_pbUpdate_clicked();
+
 private:
     Ui::ASUPSDlg* ui;
     ASLogger m_asLogger;

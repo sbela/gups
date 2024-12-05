@@ -76,12 +76,13 @@ void LogDB::addToDB(const QStringList& items)
                     if (items.size() > 1)
                         value = (isText ? "'" : "") + items.at(1).trimmed() + (isText ? "'" : "");
                 }
+                else if (value.isEmpty())
+                    value = "0";                
             };
 
             for (int i = 0; i < items.size(); ++i)
             {
                 auto item { items.at(i) };
-                PRINT("[{}]", item);
                 setItem(item, QStringLiteral("battery voltage high"), battery_voltage_high, false);
                 setItem(item, QStringLiteral("battery voltage low"), battery_voltage_low, false);
                 setItem(item, QStringLiteral("battery voltage nominal"), battery_voltage_nominal, false);
@@ -205,11 +206,14 @@ QVector<QPair<QDateTime, QString>> LogDB::getData()
     if (initDB())
     {
         QSqlQuery qry(m_db);
-        if (qry.prepare("select datum, battery_charge, input_voltage_fault, output_voltage from ups_data"))
+        if (qry.prepare("select to_char(datum, 'yyyymmddHH24MISSMS'), "
+                        "battery_charge, "
+                        "input_voltage_fault, "
+                        "output_voltage from ups_data"))
         {
             if (not qry.exec())
             {
-                PRINT("getData FAILED! [%s]:[%s]", qry.lastError().text().toUtf8().constData(),
+                PRINT("getData FAILED! [{}]:[{}]", qry.lastError().text().toUtf8().constData(),
                       qry.executedQuery().toUtf8().constData());
             }
             else
@@ -217,17 +221,57 @@ QVector<QPair<QDateTime, QString>> LogDB::getData()
                 QVector<QPair<QDateTime, QString>> data;
                 while (qry.next())
                 {
-                    data.append(
-                        qMakePair(qry.value(0).toDateTime(),
-                                  QString("%1:%2:%3")
-                                      .arg(qry.value(1).toString(), qry.value(2).toString(), qry.value(3).toString())));
+                    QDateTime utc { QDateTime::fromString(qry.value(0).toString(), "yyyyMMddhhmmsszzz") };
+                    utc.setTimeZone(QTimeZone::UTC);
+                    data.append(qMakePair(utc.toLocalTime(), QString("%1:%2:%3")
+                                                                 .arg(qry.value(1).toString(), qry.value(2).toString(),
+                                                                      qry.value(3).toString())));
                 }
                 return data;
             }
         }
         else
         {
-            PRINT("getData prepare FAILED! [%s]", qry.lastError().text().toLocal8Bit().constData());
+            PRINT("getData prepare FAILED! [{}]", qry.lastError().text().toLocal8Bit().constData());
+        }
+    }
+    return {};
+}
+
+QVector<QPair<QDateTime, QString>> LogDB::getData(const QDateTime& from, const QDateTime& to)
+{
+    if (initDB())
+    {
+        QSqlQuery qry(m_db);
+        if (qry.prepare(QStringLiteral("select to_char(datum, 'yyyymmddHH24MISSMS'), "
+                                       "battery_charge, "
+                                       "input_voltage_fault, "
+                                       "output_voltage from ups_data "
+                                       "where datum >= '%1' and datum <= '%2'")
+                            .arg(from.toString("yyyy-MM-dd hh:mm:ss"), to.toString("yyyy-MM-dd hh:mm:ss"))))
+        {
+            if (not qry.exec())
+            {
+                PRINT("getData FAILED! [{}]:[{}]", qry.lastError().text().toUtf8().constData(),
+                      qry.executedQuery().toUtf8().constData());
+            }
+            else
+            {
+                QVector<QPair<QDateTime, QString>> data;
+                while (qry.next())
+                {
+                    QDateTime utc { QDateTime::fromString(qry.value(0).toString(), "yyyyMMddhhmmsszzz") };
+                    utc.setTimeZone(QTimeZone::UTC);
+                    data.append(qMakePair(utc.toLocalTime(), QString("%1:%2:%3")
+                                                                 .arg(qry.value(1).toString(), qry.value(2).toString(),
+                                                                      qry.value(3).toString())));
+                }
+                return data;
+            }
+        }
+        else
+        {
+            PRINT("getData prepare FAILED! [{}]", qry.lastError().text().toLocal8Bit().constData());
         }
     }
     return {};

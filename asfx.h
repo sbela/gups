@@ -35,7 +35,7 @@ struct fmt::formatter<QByteArray>
     template <typename FormatContext>
     auto format(const QByteArray& p, FormatContext& ctx) -> decltype(ctx.out())
     {
-        return format_to(ctx.out(), "{}", p.toHex(' ').toStdString());
+        return fmt::format_to(ctx.out(), "{}", p.toHex(' ').toStdString());
     }
 };
 
@@ -50,7 +50,22 @@ struct fmt::formatter<QDate>
     template <typename FormatContext>
     auto format(const QDate& p, FormatContext& ctx) -> decltype(ctx.out())
     {
-        return format_to(ctx.out(), "{}", p.toString("yyyy.MM.dd").toStdString());
+        return fmt::format_to(ctx.out(), "{}", p.toString("yyyy.MM.dd").toStdString());
+    }
+};
+
+template <>
+struct fmt::formatter<QDateTime>
+{
+    constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin())
+    {
+        return ctx.end();
+    }
+
+    template <typename FormatContext>
+    auto format(const QDateTime& p, FormatContext& ctx) -> decltype(ctx.out())
+    {
+        return fmt::format_to(ctx.out(), "{}", p.toString("yyyy.MM.dd hh:mm:ss.zzz").toStdString());
     }
 };
 
@@ -63,9 +78,9 @@ struct fmt::formatter<QString>
     }
 
     template <typename FormatContext>
-    auto format(const QString& p, FormatContext& ctx) -> decltype(ctx.out())
+    auto format(const QString& p, FormatContext& ctx) const -> decltype(ctx.out())
     {
-        return format_to(ctx.out(), "{}", p.toStdString());
+        return fmt::format_to(ctx.out(), "{}", p.toStdString());
     }
 };
 
@@ -80,7 +95,7 @@ struct fmt::formatter<QRect>
     template <typename FormatContext>
     auto format(const QRect p, FormatContext& ctx) -> decltype(ctx.out())
     {
-        return format_to(ctx.out(), "(x:{} y:{} w:{} h:{})", p.x(), p.y(), p.width(), p.height());
+        return fmt::format_to(ctx.out(), "(x:{} y:{} w:{} h:{})", p.x(), p.y(), p.width(), p.height());
     }
 };
 

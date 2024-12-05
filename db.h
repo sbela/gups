@@ -37,6 +37,7 @@ public:
     ~LogDB();
     void addToDB(const QStringList& items);
     QVector<QPair<QDateTime, QString>> getData();
+    QVector<QPair<QDateTime, QString>> getData(const QDateTime& from, const QDateTime& to);
 
     bool isConnected();
 

@@ -94,7 +94,7 @@ ASUPSDlg::ASUPSDlg(QWidget* parent)
     ui->frGraph->yAxis->setRange(180, 250);
 
     QSharedPointer<QCPAxisTickerDateTime> dateTicker(new QCPAxisTickerDateTime);
-    dateTicker->setDateTimeFormat(QStringLiteral("yy.MM.dd hh:mm:ss.zzz"));
+    dateTicker->setDateTimeFormat(QStringLiteral("yy.MM.dd hh:mm"));
     dateTicker->setTickOrigin(QDateTime::fromString(QStringLiteral("1. Jan 1970, 00:00 UTC")));
     ui->frGraph->xAxis->setTicker(dateTicker);
     ui->frGraph->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom);
@@ -125,7 +125,7 @@ void ASUPSDlg::doQueryTimeout()
 void ASUPSDlg::doQueryDBTimeout()
 {
     m_updateDBTimer.stop();
-    updatedb();
+    on_pbUpdate_clicked();
     if (ui->cbAutoUpdateDB->isChecked())
         m_updateDBTimer.start(10000);
 }
@@ -164,7 +164,7 @@ void ASUPSDlg::update()
 
 void ASUPSDlg::updatedb()
 {
-    QVector<QPair<QString, QString>> data { db.getData() };
+    QVector<QPair<QDateTime, QString>> data { db.getData() };
     if (data.isEmpty())
         return;
     QVector<double> dates;
@@ -175,28 +175,47 @@ void ASUPSDlg::updatedb()
     inputVoltage.reserve(data.size());
     QVector<double> outputVoltage;
     outputVoltage.reserve(data.size());
-    for (const QPair<QString, QString>& d : data)
+    double minValue { 1000 };
+    double maxValue { 0 };
+    for (const QPair<QDateTime, QString>& d : data)
     {
-        dates.append(QCPAxisTickerDateTime::dateTimeToKey(QDateTime::fromString(d.first, "yyyyMMddhhmmsszzz")));
+        dates.append(QCPAxisTickerDateTime::dateTimeToKey(d.first));
         QStringList items { d.second.split(':') };
         charge.append(items.at(0).toInt());
         inputVoltage.append(items.at(1).toDouble());
+
+        if (minValue > items.at(1).toDouble())
+            minValue = items.at(1).toDouble();
+        if (maxValue < items.at(1).toDouble())
+            maxValue = items.at(1).toDouble();
+
         outputVoltage.append(items.at(2).toDouble());
+
+        if (minValue > items.at(2).toDouble())
+            minValue = items.at(2).toDouble();
+        if (maxValue < items.at(2).toDouble())
+            maxValue = items.at(2).toDouble();
     }
 
-    ui->frGraph->graph(0)->data().clear();
+    ui->frGraph->graph(0)->data()->clear();
     ui->frGraph->graph(0)->addData(dates, charge);
-    ui->frGraph->graph(1)->data().clear();
+    ui->frGraph->graph(1)->data()->clear();
     ui->frGraph->graph(1)->addData(dates, inputVoltage);
-    ui->frGraph->graph(2)->data().clear();
+    ui->frGraph->graph(2)->data()->clear();
     ui->frGraph->graph(2)->addData(dates, outputVoltage);
-    ui->frGraph->xAxis->setRange(dates.first(), dates.last());
+
+    ui->frGraph->yAxis->setRange(minValue - 2, maxValue + 2);
+
+    ui->frGraph->xAxis->setRange(QCPAxisTickerDateTime::dateTimeToKey(QDateTime::currentDateTime().addSecs(-3600)),
+                                 QCPAxisTickerDateTime::dateTimeToKey(QDateTime::currentDateTime().addSecs(60)));
     ui->frGraph->replot();
+    ui->dtFrom->setDateTime(data.first().first);
+    ui->dtTo->setDateTime(data.last().first);
 }
 
 void ASUPSDlg::on_pbUpdateDB_clicked()
 {
-    updatedb();
+    on_pbUpdate_clicked();
     QStringList items;
     items.reserve(ui->twData->rowCount());
     for (int i = 0; i < ui->twData->rowCount(); ++i)
@@ -210,4 +229,62 @@ void ASUPSDlg::on_cbAutoUpdateDB_stateChanged(int arg1)
     s.setValue(QStringLiteral("updatedb"), arg1);
     if (arg1)
         m_updateDBTimer.start(10000);
+}
+
+void ASUPSDlg::on_pbUpdate_clicked()
+{
+    QDateTime from(ui->dtFrom->dateTime());
+    QDateTime to(ui->dtTo->dateTime());
+    if (from > to)
+    {
+        auto tmp { from };
+        from = to;
+        to   = tmp;
+    }
+
+    QVector<QPair<QDateTime, QString>> data { db.getData(from, to) };
+    if (data.isEmpty())
+        return;
+    QVector<double> dates;
+    dates.reserve(data.size());
+    QVector<double> charge;
+    charge.reserve(data.size());
+    QVector<double> inputVoltage;
+    inputVoltage.reserve(data.size());
+    QVector<double> outputVoltage;
+    outputVoltage.reserve(data.size());
+
+    double minValue { 1000 };
+    double maxValue { 0 };
+
+    for (const QPair<QDateTime, QString>& d : data)
+    {
+        dates.append(QCPAxisTickerDateTime::dateTimeToKey(d.first));
+        QStringList items { d.second.split(':') };
+        charge.append(items.at(0).toInt());
+        inputVoltage.append(items.at(1).toDouble());
+        outputVoltage.append(items.at(2).toDouble());
+        if (minValue > items.at(1).toDouble())
+            minValue = items.at(1).toDouble();
+        if (maxValue < items.at(1).toDouble())
+            maxValue = items.at(1).toDouble();
+        if (minValue > items.at(2).toDouble())
+            minValue = items.at(2).toDouble();
+        if (maxValue < items.at(2).toDouble())
+            maxValue = items.at(2).toDouble();
+    }
+
+    ui->frGraph->graph(0)->data()->clear();
+    ui->frGraph->graph(0)->addData(dates, charge);
+    ui->frGraph->graph(1)->data()->clear();
+    ui->frGraph->graph(1)->addData(dates, inputVoltage);
+    ui->frGraph->graph(2)->data()->clear();
+    ui->frGraph->graph(2)->addData(dates, outputVoltage);
+
+    ui->frGraph->yAxis->setRange(minValue - 2, maxValue + 2);
+
+    ui->frGraph->xAxis->setRange(
+        QCPAxisTickerDateTime::dateTimeToKey(from < data.first().first ? data.first().first : from),
+        QCPAxisTickerDateTime::dateTimeToKey(to > data.last().first ? data.last().first : to));
+    ui->frGraph->replot();
 }
