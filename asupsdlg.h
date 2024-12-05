@@ -58,6 +58,8 @@ private Q_SLOTS:
 
     void on_pbUpdate_clicked();
 
+    void on_pbLastUpdate_clicked();
+
 private:
     Ui::ASUPSDlg* ui;
     ASLogger m_asLogger;

@@ -142,6 +142,59 @@
        </widget>
       </item>
       <item>
+       <widget class="QLabel" name="lbLast">
+        <property name="text">
+         <string>Last:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="cbLast">
+        <item>
+         <property name="text">
+          <string>5 min</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>10 min</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>30 min</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>1 hour</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>1 day</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>1 month</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>1 year</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pbLastUpdate">
+        <property name="text">
+         <string>Update</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <spacer name="horizontalSpacer">
         <property name="orientation">
          <enum>Qt::Orientation::Horizontal</enum>
